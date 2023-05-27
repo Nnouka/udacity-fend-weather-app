@@ -30,7 +30,7 @@ app.listen(port, () => {
 
 // setup routes
 const baseUrl = '/api'
-app.get(`${baseUrl}/data`, (_, res) => {
+app.get(`${baseUrl}/all`, (_, res) => {
     res.send(projectData);
 });
 app.post(`${baseUrl}/data`, (req, res) => {

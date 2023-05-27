@@ -1,8 +1,8 @@
 /* Global Variables */
 const apiKey = "5bf127f28f2e9419c12c5c35cc552e1b";
 const weatherHost = "https://api.openweathermap.org/data/2.5/weather";
-const baseUrl = `${weatherHost}?appid=${apiKey}&zip=`;
-const backendUrl = "http://localhost:8000/api/data";
+const baseUrl = `${weatherHost}?appid=${apiKey}&units=imperial&zip=`;
+const backendUrl = "http://localhost:8000/api";
 
 // Event listener to add function to existing HTML DOM element
 document
@@ -14,26 +14,30 @@ document
  */
 function generateWeatherMap() {
   const zip = document.querySelector("#zip")?.value;
-  const feelings = document.querySelector("#feelings")?.value;
+  const feel = document.querySelector("#feelings")?.value;
   // Create a new date instance dynamically with JS
   let d = new Date();
   const date = d.getMonth() + "." + d.getDate() + "." + d.getFullYear();
   const timestamp = d.getTime();
   const formattedData = {
-    key: zip + feelings,
+    key: zip + feel,
     zip,
-    feelings,
+    feel,
     date,
     timestamp,
-    temperature: null,
+    temp: null,
     weathermap: null,
   };
-  console.log({ formattedData });
   fetchWeatherMapByZipCode(baseUrl, zip).then(async (data) => {
-    formattedData.temperature = data?.main?.temp;
+    formattedData.temp = data?.main?.temp;
     formattedData.weathermap = data;
-    const res = await postData(backendUrl, formattedData);
-    renderResponseData(res);
+    try {
+      const res = await postData(backendUrl + "/data", formattedData);
+      console.log({ res });
+      renderResponseData(await getProjectData());
+    } catch (e) {
+      console.error(e);
+    }
   });
 }
 
@@ -56,19 +60,26 @@ function renderResponseData(data) {
   const entries = Object.values(data).sort(sortResponseDataByTimestamp);
 
   const container = document.querySelector("#entryHolder");
-  container.querySelector("#date").innerHTML = `
+  if (entries[0]?.temp) {
+    container.querySelector("#date").innerHTML = `
         Date: <span>${entries[0]?.date}</span>
     `;
-  container.querySelector("#temp").innerHTML = `
-        Temperature: <span>${entries[0]?.temperature}</span> °F
+    container.querySelector("#temp").innerHTML = `
+        Temperature: <span>${Math.round(entries[0]?.temp)}</span> degrees
     `;
-  container.querySelector("#content").innerHTML = `
+    container.querySelector("#content").innerHTML = `
         <span>Zip: ${entries[0]?.zip}</span> 
-        <div>Your feelings</div>
         <p>
-        ${entries[0]?.feelings}
+          Your feelings
+          <hr />
+        ${entries[0]?.feel}
         </p>
     `;
+  } else {
+    container.querySelector("#temp").innerHTML = `
+        Error: <span style="color: red;">${entries[0]?.weathermap?.message ?? 'unknown error occured'}</span>
+    `;
+  }
 }
 
 /**
@@ -98,3 +109,8 @@ async function postData(url, data) {
 }
 
 /* Function to GET Project Data */
+async function getProjectData() {
+  return await fetch(backendUrl + "/all").then(
+    async (response) => await response.json()
+  );
+}
